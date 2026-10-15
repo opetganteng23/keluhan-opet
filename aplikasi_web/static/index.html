@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klasifikasi Keluhan Transportasi</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #d9d9d9;
+    --border-strong: #1a1a1a;
+    --accent: #1a1a1a;
+    --row-alt: #f7f7f7;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border-strong);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  section {
+    margin-bottom: 40px;
+  }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+
+  .panel {
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  input[type="file"] {
+    font-size: 14px;
+    width: 100%;
+  }
+
+  select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: inherit;
+  }
+
+  button {
+    appearance: none;
+    background: var(--accent);
+    color: #fff;
+    border: 1px solid var(--accent);
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  button.secondary {
+    background: transparent;
+    color: var(--fg);
+  }
+
+  .row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .status {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  .status.error {
+    color: #a10000;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--row-alt);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--row-alt);
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+  }
+
+  .table-scroll table {
+    border: none;
+  }
+
+  .table-scroll th:first-child,
+  .table-scroll td:first-child {
+    border-left: none;
+  }
+
+  .table-scroll th:last-child,
+  .table-scroll td:last-child {
+    border-right: none;
+  }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .summary-grid table {
+    width: 100%;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .chart {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .chart-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 56px;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+
+  .chart-track {
+    background: var(--row-alt);
+    height: 14px;
+    border: 1px solid var(--border);
+  }
+
+  .chart-fill {
+    background: var(--fg);
+    height: 100%;
+  }
+
+  .chart-value {
+    text-align: right;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .pagination button {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  .pagination select {
+    width: auto;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+
+  .pagination .page-info {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 48px;
+    padding-top: 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 640px) {
+    .summary-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Klasifikasi Keluhan Transportasi</h1>
+    <p class="subtitle">Upload data keluhan, tentukan kolom isi keluhan, lalu lihat hasil analisis kategori dan sentimen.</p>
+  </header>
+
+  <section>
+    <h2>1. Upload Data</h2>
+    <div class="panel">
+      <div class="field">
+        <label for="input-file">File CSV</label>
+        <input type="file" id="input-file" accept=".csv">
+      </div>
+      <div class="row">
+        <button id="btn-upload">Upload</button>
+      </div>
+      <p class="status" id="status-upload"></p>
+    </div>
+  </section>
+
+  <section id="section-kolom" class="hidden">
+    <h2>2. Pilih Kolom Isi Keluhan</h2>
+    <div class="panel">
+      <div class="field">
+        <label for="select-kolom">Kolom</label>
+        <select id="select-kolom"></select>
+      </div>
+      <div class="field">
+        <label for="select-metode">Metode analisis</label>
+        <select id="select-metode">
+          <option value="llm">AI / LLM (akurat, berbayar, ada kategori Tidak Relevan)</option>
+          <option value="kata_kunci">Kata Kunci (cepat, gratis)</option>
+        </select>
+      </div>
+      <p class="hint" id="hint-metode"></p>
+      <label style="display:flex; gap:8px; align-items:center; font-size:14px; margin:8px 0;">
+        <input type="checkbox" id="cek-seleksi" checked>
+        Seleksi data: buang duplikat, teks kosong, dan akun resmi/media sebelum analisis
+      </label>
+      <div class="row">
+        <button id="btn-classify">Jalankan Analisis</button>
+      </div>
+      <p class="status" id="status-classify"></p>
+    </div>
+  </section>
+
+  <section id="section-ringkasan" class="hidden">
+    <h2>3. Ringkasan</h2>
+    <div class="panel summary-grid">
+      <div>
+        <table id="table-kategori">
+          <thead><tr><th>Kategori</th><th>Jumlah</th><th>%</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="chart" id="chart-kategori"></div>
+      </div>
+      <div>
+        <table id="table-sentimen">
+          <thead><tr><th>Sentimen</th><th>Jumlah</th><th>%</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="chart" id="chart-sentimen"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="section-hasil" class="hidden">
+    <h2>4. Hasil Klasifikasi</h2>
+    <div class="table-scroll">
+      <table id="table-hasil">
+        <thead><tr></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <button id="btn-prev" class="secondary">&larr; Sebelumnya</button>
+      <span class="page-info" id="page-info"></span>
+      <button id="btn-next" class="secondary">Berikutnya &rarr;</button>
+      <label for="select-page-size" style="margin-left: auto; font-size: 13px; font-weight: 600;">Baris per halaman</label>
+      <select id="select-page-size">
+        <option value="20">20</option>
+        <option value="50" selected>50</option>
+      </select>
+    </div>
+    <p class="hint" id="hint-hasil"></p>
+    <div class="field" style="margin-top: 16px;">
+      <label for="select-export-kategori">Download hasil</label>
+      <div class="row">
+        <select id="select-export-kategori">
+          <option value="">Semua Kategori</option>
+          <option value="Angkutan Umum">Angkutan Umum</option>
+          <option value="Lahan Parkir">Lahan Parkir</option>
+          <option value="Manajemen Lalu Lintas">Manajemen Lalu Lintas</option>
+          <option value="Tidak Relevan">Tidak Relevan</option>
+        </select>
+        <button id="btn-export">Download Excel</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Kategori: Angkutan Umum, Lahan Parkir, Manajemen Lalu Lintas.
+  </footer>
+
+</div>
+
+<script>
+  let idSesi = null;
+  let daftarKolom = [];
+
+  const elInputFile = document.getElementById("input-file");
+  const elBtnUpload = document.getElementById("btn-upload");
+  const elStatusUpload = document.getElementById("status-upload");
+
+  const elSectionKolom = document.getElementById("section-kolom");
+  const elSelectKolom = document.getElementById("select-kolom");
+  const elBtnClassify = document.getElementById("btn-classify");
+  const elStatusClassify = document.getElementById("status-classify");
+
+  const elSectionRingkasan = document.getElementById("section-ringkasan");
+  const elTableKategoriBody = document.querySelector("#table-kategori tbody");
+  const elTableSentimenBody = document.querySelector("#table-sentimen tbody");
+  const elChartKategori = document.getElementById("chart-kategori");
+  const elChartSentimen = document.getElementById("chart-sentimen");
+
+  const elSectionHasil = document.getElementById("section-hasil");
+  const elTableHasilHead = document.querySelector("#table-hasil thead tr");
+  const elTableHasilBody = document.querySelector("#table-hasil tbody");
+  const elHintHasil = document.getElementById("hint-hasil");
+  const elBtnExport = document.getElementById("btn-export");
+  const elBtnPrev = document.getElementById("btn-prev");
+  const elBtnNext = document.getElementById("btn-next");
+  const elPageInfo = document.getElementById("page-info");
+  const elSelectPageSize = document.getElementById("select-page-size");
+
+  let hasilLengkap = [];
+  let halamanSekarang = 1;
+
+  function setStatus(el, pesan, isError) {
+    el.textContent = pesan;
+    el.className = "status" + (isError ? " error" : "");
+  }
+
+  elBtnUpload.addEventListener("click", async () => {
+    const file = elInputFile.files[0];
+    if (!file) {
+      setStatus(elStatusUpload, "Pilih file CSV terlebih dahulu.", true);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    elBtnUpload.disabled = true;
+    setStatus(elStatusUpload, "Mengunggah dan membaca file...", false);
+
+    try {
+      const res = await fetch("/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Upload gagal");
+
+      idSesi = data.id;
+      daftarKolom = data.kolom;
+
+      elSelectKolom.innerHTML = "";
+      daftarKolom.forEach((kolom) => {
+        const opt = document.createElement("option");
+        opt.value = kolom;
+        opt.textContent = kolom;
+        elSelectKolom.appendChild(opt);
+      });
+
+      setStatus(elStatusUpload, `Berhasil: ${data.jumlah_baris} baris terbaca.`, false);
+      elSectionKolom.classList.remove("hidden");
+      elSectionRingkasan.classList.add("hidden");
+      elSectionHasil.classList.add("hidden");
+    } catch (err) {
+      setStatus(elStatusUpload, err.message, true);
+    } finally {
+      elBtnUpload.disabled = false;
+    }
+  });
+
+  elBtnClassify.addEventListener("click", async () => {
+    if (!idSesi) return;
+    const kolomKeluhan = elSelectKolom.value;
+
+    const metode = elSelectMetode.value;
+    elBtnClassify.disabled = true;
+    setStatus(elStatusClassify, metode === "llm"
+      ? "Menganalisis dengan AI... untuk ribuan baris bisa beberapa menit, jangan tutup halaman."
+      : "Menjalankan klasifikasi kata kunci...", false);
+
+    try {
+      const res = await fetch("/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: idSesi,
+          kolom_keluhan: kolomKeluhan,
+          metode,
+          seleksi: document.getElementById("cek-seleksi").checked,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Klasifikasi gagal");
+
+      const catatanFallback = data.jumlah_fallback
+        ? ` ${data.jumlah_fallback} baris gagal di AI dan dianalisis ulang dengan kata kunci (lihat kolom Metode).`
+        : "";
+      const seleksi = data.ringkasan_seleksi || {};
+      const rincianSaring = Object.entries(seleksi)
+        .filter(([tahap]) => tahap !== "Data awal" && tahap !== "Dianalisis")
+        .map(([tahap, jumlah]) => `${tahap} ${jumlah}`)
+        .join(", ");
+      const catatanSeleksi = rincianSaring
+        ? ` Dari ${seleksi["Data awal"]} baris, disaring: ${rincianSaring} (lihat sheet "Data Disaring" di Excel).`
+        : "";
+      setStatus(elStatusClassify, `Selesai: ${data.hasil.length} baris dianalisis.${catatanSeleksi}${catatanFallback}`, false);
+      tampilkanRingkasan(data.ringkasan_kategori, data.ringkasan_sentimen, data.hasil.length);
+      tampilkanHasil(data.hasil);
+    } catch (err) {
+      setStatus(elStatusClassify, err.message, true);
+    } finally {
+      elBtnClassify.disabled = false;
+    }
+  });
+
+  function gambarChart(container, data, total) {
+    container.innerHTML = "";
+    const nilaiMaksimum = Math.max(...Object.values(data), 1);
+    Object.entries(data).forEach(([label, jumlah]) => {
+      const persen = total ? ((jumlah / total) * 100).toFixed(1) : "0.0";
+      const lebar = (jumlah / nilaiMaksimum) * 100;
+      const baris = document.createElement("div");
+      baris.className = "chart-row";
+      baris.innerHTML = `
+        <span>${label}</span>
+        <span class="chart-track"><span class="chart-fill" style="width:${lebar}%"></span></span>
+        <span class="chart-value">${jumlah} (${persen}%)</span>
+      `;
+      container.appendChild(baris);
+    });
+  }
+
+  function tampilkanRingkasan(ringkasanKategori, ringkasanSentimen, total) {
+    elTableKategoriBody.innerHTML = "";
+    Object.entries(ringkasanKategori).forEach(([kategori, jumlah]) => {
+      const tr = document.createElement("tr");
+      const persen = total ? ((jumlah / total) * 100).toFixed(1) : "0.0";
+      tr.innerHTML = `<td>${kategori}</td><td>${jumlah}</td><td>${persen}%</td>`;
+      elTableKategoriBody.appendChild(tr);
+    });
+
+    elTableSentimenBody.innerHTML = "";
+    Object.entries(ringkasanSentimen).forEach(([sentimen, jumlah]) => {
+      const tr = document.createElement("tr");
+      const persen = total ? ((jumlah / total) * 100).toFixed(1) : "0.0";
+      tr.innerHTML = `<td>${sentimen}</td><td>${jumlah}</td><td>${persen}%</td>`;
+      elTableSentimenBody.appendChild(tr);
+    });
+
+    gambarChart(elChartKategori, ringkasanKategori, total);
+    gambarChart(elChartSentimen, ringkasanSentimen, total);
+
+    elSectionRingkasan.classList.remove("hidden");
+  }
+
+  function tampilkanHasil(hasil) {
+    hasilLengkap = hasil;
+    halamanSekarang = 1;
+
+    const kolomDitampilkan = ["Isi Keluhan", "Teks Bersih", "Kategori", "Sentimen", "Metode"];
+    elTableHasilHead.innerHTML = "";
+    kolomDitampilkan.forEach((kolom) => {
+      const th = document.createElement("th");
+      th.textContent = kolom;
+      elTableHasilHead.appendChild(th);
+    });
+
+    renderHalamanHasil();
+    elSectionHasil.classList.remove("hidden");
+  }
+
+  function renderHalamanHasil() {
+    const kolomDitampilkan = ["Isi Keluhan", "Teks Bersih", "Kategori", "Sentimen", "Metode"];
+    const ukuranHalaman = parseInt(elSelectPageSize.value, 10);
+    const totalHalaman = Math.max(1, Math.ceil(hasilLengkap.length / ukuranHalaman));
+    if (halamanSekarang > totalHalaman) halamanSekarang = totalHalaman;
+
+    const mulai = (halamanSekarang - 1) * ukuranHalaman;
+    const akhir = Math.min(mulai + ukuranHalaman, hasilLengkap.length);
+
+    elTableHasilBody.innerHTML = "";
+    for (let i = mulai; i < akhir; i++) {
+      const tr = document.createElement("tr");
+      kolomDitampilkan.forEach((kolom) => {
+        const td = document.createElement("td");
+        td.textContent = hasilLengkap[i][kolom] ?? "";
+        tr.appendChild(td);
+      });
+      elTableHasilBody.appendChild(tr);
+    }
+
+    elPageInfo.textContent = hasilLengkap.length
+      ? `Halaman ${halamanSekarang} dari ${totalHalaman} (baris ${mulai + 1}-${akhir} dari ${hasilLengkap.length})`
+      : "Tidak ada data.";
+    elHintHasil.textContent = `Total ${hasilLengkap.length} baris. Unduh Excel untuk data lengkap dalam satu file.`;
+
+    elBtnPrev.disabled = halamanSekarang <= 1;
+    elBtnNext.disabled = halamanSekarang >= totalHalaman;
+  }
+
+  elBtnPrev.addEventListener("click", () => {
+    if (halamanSekarang > 1) {
+      halamanSekarang -= 1;
+      renderHalamanHasil();
+    }
+  });
+
+  elBtnNext.addEventListener("click", () => {
+    halamanSekarang += 1;
+    renderHalamanHasil();
+  });
+
+  elSelectPageSize.addEventListener("change", () => {
+    halamanSekarang = 1;
+    renderHalamanHasil();
+  });
+
+  const elSelectExportKategori = document.getElementById("select-export-kategori");
+
+  const elSelectMetode = document.getElementById("select-metode");
+  const elHintMetode = document.getElementById("hint-metode");
+
+  // Cek apakah API key LLM sudah diisi; kalau belum, pakai kata kunci
+  fetch("/status-llm")
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.tersedia) {
+        elSelectMetode.value = "kata_kunci";
+        elSelectMetode.querySelector('option[value="llm"]').disabled = true;
+        elHintMetode.textContent = "Mode AI nonaktif: isi LLM_API_KEY di file .env lalu restart server.";
+      }
+    })
+    .catch(() => {});
+
+  elBtnExport.addEventListener("click", () => {
+    if (!idSesi) return;
+    const kategori = elSelectExportKategori.value;
+    const query = kategori ? `?kategori=${encodeURIComponent(kategori)}` : "";
+    window.location.href = `/export/${idSesi}${query}`;
+  });
+</script>
+</body>
+</html>

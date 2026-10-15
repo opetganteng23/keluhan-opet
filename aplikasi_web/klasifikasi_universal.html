@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Klasifikasi Keluhan Transportasi (Mandiri)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --fg: #1a1a1a;
+      --muted: #6b6b6b;
+      --border: #d9d9d9;
+      --border-strong: #1a1a1a;
+      --row-alt: #f7f7f7;
+    }
+
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      padding: 48px 16px 96px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; }
+
+    /* ── Header ── */
+    h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }
+    .app-sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+
+    /* ── Steps indicator ── */
+    .steps {
+      display: flex;
+      border: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+    .step {
+      flex: 1;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      border-right: 1px solid var(--border);
+    }
+    .step:last-child { border-right: none; }
+    .step.active { color: var(--fg); font-weight: 600; background: var(--row-alt); }
+    .step.done   { color: var(--fg); }
+    .step-num {
+      display: inline-block;
+      width: 18px;
+      font-weight: 600;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    p.desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 1px dashed var(--border);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--row-alt);
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--border-strong); }
+    .upload-zone.done { border-style: solid; }
+    .upload-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .upload-hint  { font-size: 12px; color: var(--muted); }
+
+    /* ── Form controls ── */
+    select, input[type="text"] {
+      font-size: 13px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg);
+      outline: none;
+      font-family: inherit;
+    }
+    select:focus, input[type="text"]:focus { border-color: var(--border-strong); }
+
+    /* ── Category builder ── */
+    .cat-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+
+    .cat-item {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      background: var(--row-alt);
+    }
+    .cat-item-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .cat-name-input {
+      flex: 1; font-weight: 600; font-size: 14px;
+      border: none; border-bottom: 1px solid transparent; background: transparent; outline: none;
+      color: var(--fg);
+      font-family: inherit;
+    }
+    .cat-name-input:focus { border-bottom-color: var(--border-strong); }
+
+    .btn-remove-cat {
+      background: none; border: 1px solid var(--border); cursor: pointer;
+      color: var(--muted); font-size: 12px; padding: 3px 8px;
+      font-family: inherit;
+    }
+    .btn-remove-cat:hover { color: var(--fg); border-color: var(--border-strong); }
+
+    .kw-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+    .kw-input {
+      width: 100%;
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg);
+      outline: none;
+      font-family: inherit;
+    }
+    .kw-input:focus { border-color: var(--border-strong); }
+    .kw-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .kw-tags {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;
+    }
+    .kw-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      cursor: default;
+      background: var(--bg);
+    }
+    .kw-tag .remove-kw {
+      cursor: pointer; font-size: 11px;
+      background: none; border: none; padding: 0; line-height: 1;
+      color: var(--muted);
+      font-family: inherit;
+    }
+    .kw-tag .remove-kw:hover { color: var(--fg); }
+
+    /* ── Sentiment editor ── */
+    .sent-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+    }
+    .sent-block { display: flex; flex-direction: column; gap: 6px; }
+    .sent-block-label {
+      font-size: 12px; font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .sent-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .sent-input {
+      width: 100%;
+      font-size: 12px;
+      padding: 6px 9px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg);
+      outline: none;
+      font-family: inherit;
+    }
+    .sent-input:focus { border-color: var(--border-strong); }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 9px 16px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-strong);
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-primary  { background: var(--fg); color: #fff; }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-ghost    { background: var(--bg); color: var(--fg); }
+    .btn-ghost:hover { background: var(--row-alt); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-add-cat {
+      background: var(--bg); color: var(--fg);
+      border: 1px dashed var(--border);
+      width: 100%; text-align: center;
+      padding: 9px;
+    }
+    .btn-add-cat:hover { background: var(--row-alt); }
+
+    /* ── Progress ── */
+    .progress-wrap {
+      height: 6px; background: var(--border);
+      overflow: hidden; margin-top: 8px;
+    }
+    .progress-bar {
+      height: 100%; background: var(--fg);
+      transition: width 0.2s; width: 0%;
+    }
+    .progress-text { font-size: 13px; color: var(--muted); }
+
+    /* ── Stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 6px; }
+    .stat-value { font-size: 24px; font-weight: 600; line-height: 1.1; }
+    .stat-pct   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      align-items: center; margin-bottom: 16px;
+    }
+    .filter-bar select { font-size: 13px; padding: 7px 10px; }
+
+    /* ── Table ── */
+    .table-wrap { border: 1px solid var(--border); }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+    thead tr { background: var(--row-alt); }
+    th {
+      padding: 10px 12px; text-align: left;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    th:nth-child(1) { width: 48%; }
+    th:nth-child(2) { width: 28%; }
+    th:nth-child(3) { width: 24%; }
+    td {
+      padding: 9px 12px; border-bottom: 1px solid var(--border);
+      vertical-align: top; word-break: break-word; color: var(--fg);
+    }
+    tbody tr:nth-child(even) { background: var(--row-alt); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    /* ── Misc ── */
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .hidden { display: none !important; }
+    .section-sep { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .preset-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+    .preset-btn {
+      padding: 6px 12px; font-size: 12px;
+      border: 1px solid var(--border); background: var(--bg); cursor: pointer; color: var(--fg);
+      font-family: inherit;
+    }
+    .preset-btn:hover { background: var(--row-alt); border-color: var(--border-strong); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <h1>Klasifikasi Keluhan Transportasi — Versi Mandiri</h1>
+  <p class="app-sub">Berjalan langsung di browser tanpa server. Atur kata kunci, upload CSV, analisis (kata kunci atau AI), lalu ekspor ke Excel.</p>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step1"><span class="step-num">1</span> Atur Kategori</div>
+    <div class="step" id="step2"><span class="step-num">2</span> Atur Sentimen</div>
+    <div class="step" id="step3"><span class="step-num">3</span> Upload CSV</div>
+    <div class="step" id="step4"><span class="step-num">4</span> Proses</div>
+    <div class="step" id="step5"><span class="step-num">5</span> Hasil</div>
+  </div>
+
+  <!-- ─── STEP 1: Category Builder ─────────────────────────────── -->
+  <div class="card" id="card-cat">
+    <div class="card-title">Kategori Klasifikasi</div>
+
+    <p class="desc">Kategori untuk keluhan transportasi Jakarta. Kata kunci bisa ditambah/dihapus sesuai kebutuhan.</p>
+    <div class="preset-bar">
+            <button class="preset-btn" onclick="loadPreset('transportasi')">Kembalikan ke Default</button>
+    </div>
+
+    <div class="cat-list" id="cat-list"></div>
+    <button class="btn btn-add-cat" onclick="addCategory()">+ Tambah Kategori</button>
+
+    <hr class="section-sep">
+    <div style="display:flex; justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="goStep(2)">Lanjut ke Sentimen</button>
+    </div>
+  </div>
+
+  <!-- ─── STEP 2: Sentiment Editor ─────────────────────────────── -->
+  <div class="card hidden" id="card-sent">
+    <div class="card-title">Kamus Sentimen</div>
+    <p class="desc">Ketik kata lalu tekan Enter untuk menambah. Klik kata untuk hapus.</p>
+
+    <div class="sent-grid">
+      <div class="sent-block">
+        <div class="sent-block-label">Kata Negatif</div>
+        <input class="sent-input" id="neg-input" placeholder="Ketik kata negatif + Enter" onkeydown="addSentWord(event,'neg')">
+        <div class="sent-tags" id="neg-tags"></div>
+      </div>
+      <div class="sent-block">
+        <div class="sent-block-label">Kata Positif</div>
+        <input class="sent-input" id="pos-input" placeholder="Ketik kata positif + Enter" onkeydown="addSentWord(event,'pos')">
+        <div class="sent-tags" id="pos-tags"></div>
+      </div>
+    </div>
+
+    <hr class="section-sep">
+    <div style="display:flex; justify-content:space-between;">
+      <button class="btn btn-ghost" onclick="goStep(1)">Kembali</button>
+      <button class="btn btn-primary" onclick="goStep(3)">Lanjut Upload CSV</button>
+    </div>
+  </div>
+
+  <!-- ─── STEP 3: Upload CSV ────────────────────────────────────── -->
+  <div class="card hidden" id="card-upload">
+    <div class="card-title">Upload File CSV</div>
+
+    <div class="upload-zone" id="upload-zone"
+      onclick="document.getElementById('csv-input').click()"
+      ondragover="event.preventDefault(); this.classList.add('dragover')"
+      ondragleave="this.classList.remove('dragover')"
+      ondrop="handleDrop(event)">
+      <p class="upload-title">Drag & drop file CSV atau klik untuk pilih</p>
+      <p class="upload-hint">Encoding UTF-8 atau Latin-1 — otomatis terdeteksi</p>
+      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFile(this.files[0])">
+    </div>
+
+    <div class="hidden" id="col-area" style="margin-top:16px;">
+      <div class="kw-label" style="margin-bottom:8px;">Pilih kolom teks yang akan dianalisis:</div>
+      <div class="row">
+        <select id="col-picker" style="flex:1; min-width:200px;"></select>
+        <button class="btn btn-primary" onclick="mulaiProses()">Mulai Proses</button>
+      </div>
+      <p class="meta" id="row-count"></p>
+      <div class="kw-label" style="margin:16px 0 8px;">Metode analisis:</div>
+      <select id="metode-picker" onchange="toggleKey()" style="min-width:200px;">
+        <option value="kata_kunci">Kata Kunci (cepat, gratis, offline)</option>
+        <option value="llm">AI / LLM (akurat, berbayar, butuh internet)</option>
+      </select>
+      <div class="hidden" id="key-area" style="margin-top:8px;">
+        <input type="password" id="api-key" placeholder="API key LLM" style="width:100%;" autocomplete="off">
+        <p class="meta">Key hanya dipakai di halaman ini dan tidak disimpan. Teks dikirim ke layanan API LLM untuk dianalisis.
+        Nama kategori dan kata kunci dipakai AI sebagai petunjuk topik. Teks yang tidak cocok ke kategori mana pun diberi label "Tidak Relevan".</p>
+      </div>
+    </div>
+
+    <hr class="section-sep">
+    <button class="btn btn-ghost btn-sm" onclick="goStep(2)">Kembali</button>
+  </div>
+
+  <!-- ─── STEP 4: Progress ──────────────────────────────────────── -->
+  <div class="card hidden" id="card-progress">
+    <div class="card-title">Memproses Data</div>
+    <p class="progress-text" id="progress-text">Memulai...</p>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- ─── STEP 5: Results ───────────────────────────────────────── -->
+  <div class="hidden" id="result-area">
+
+    <!-- Summary stats -->
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <!-- Filter + export -->
+    <div class="filter-bar">
+      <select id="filter-cat" onchange="renderTable()">
+        <option value="">Semua Kategori</option>
+      </select>
+      <select id="filter-sent" onchange="renderTable()">
+        <option value="">Semua Sentimen</option>
+        <option value="Negatif">Negatif</option>
+        <option value="Netral">Netral</option>
+        <option value="Positif">Positif</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="resetAll()">Mulai Ulang</button>
+      <button class="btn btn-primary" onclick="exportExcel()" style="margin-left:auto;">
+        Download Excel
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Isi Teks</th>
+              <th>Kategori</th>
+              <th>Sentimen</th>
+              <th>Metode</th>
+            </tr>
+          </thead>
+          <tbody id="result-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="meta" id="table-info"></p>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let categories  = [];   // [{name, keywords[]}]
+let sentNeg     = [];
+let sentPos     = [];
+let allRows     = [];
+let rawData     = [];
+let headers     = [];
+let currentStep = 1;
+
+// ═══════════════════════════════════════════════════════
+// PRESETS
+// ═══════════════════════════════════════════════════════
+const PRESETS = {
+  transportasi: {
+    cats: [
+      { name: 'Angkutan Umum', kw: ['bus','angkot','angkutan','angkutan umum','transjakarta','tj','busway','jaklingko','jak lingko','mikrotrans','mikrolet','metrotrans','halte','terminal','penumpang','supir','sopir','pramudi','tarif','tiket','rute','trayek','bis','ojek','armada','jadwal bus'] },
+      { name: 'Lahan Parkir',  kw: ['parkir','lahan parkir','tempat parkir','parkiran','jukir','juru parkir','tarif parkir','retribusi parkir','gedung parkir','parkir liar','slot parkir','derek'] },
+      { name: 'Manajemen Lalu Lintas', kw: ['macet','kemacetan','lalu lintas','lalin','lampu merah','traffic light','rambu','marka jalan','trotoar','pejalan kaki','lampu jalan','penerangan jalan','pju','jpo','zebra cross','persimpangan','putar balik','u-turn','dishub','ganjil genap','rekayasa lalu lintas'] }
+    ],
+    neg: ['buruk','jelek','parah','rusak','kotor','lambat','lama','telat','terlambat','mahal','kecewa','kesal','berbahaya','semrawut','kacau','kumuh','sesak','berdesakan','mogok','ugal-ugalan','ngetem','pungli','liar','gelap','mati','tidak layak','tidak nyaman','tidak aman','tidak tertib','macet'],
+    pos: ['bagus','baik','nyaman','bersih','cepat','murah','tepat waktu','tertib','aman','lancar','memuaskan','membantu','efisien','terjangkau','ramah','responsif','terang','terima kasih']
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// STEP NAVIGATION
+// ═══════════════════════════════════════════════════════
+function goStep(n) {
+  currentStep = n;
+  ['card-cat','card-sent','card-upload','card-progress'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('hidden', i + 1 !== n);
+  });
+  document.getElementById('result-area').classList.toggle('hidden', n !== 5);
+
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('step' + i);
+    el.classList.remove('active','done');
+    if (i < n)  el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CATEGORY BUILDER
+// ═══════════════════════════════════════════════════════
+function loadPreset(key) {
+  const p = PRESETS[key];
+  categories = p.cats.map(c => ({ name: c.name, keywords: [...c.kw] }));
+  sentNeg = [...p.neg];
+  sentPos = [...p.pos];
+  renderCatList();
+  renderSentTags();
+}
+
+function addCategory() {
+  categories.push({ name: 'Kategori Baru', keywords: [] });
+  renderCatList();
+}
+
+function removeCategory(idx) {
+  categories.splice(idx, 1);
+  renderCatList();
+}
+
+function renderCatList() {
+  const list = document.getElementById('cat-list');
+  list.innerHTML = categories.map((cat, idx) => `
+    <div class="cat-item" id="catitem-${idx}">
+      <div class="cat-item-header">
+        <input class="cat-name-input" value="${esc(cat.name)}"
+          onchange="categories[${idx}].name = this.value; updateFilterOptions()"
+          placeholder="Nama kategori">
+        <button class="btn-remove-cat" onclick="removeCategory(${idx})" title="Hapus kategori">Hapus</button>
+      </div>
+      <div class="kw-label">Kata kunci:</div>
+      <input class="kw-input" placeholder="Ketik kata kunci + Enter"
+        onkeydown="addKeyword(event, ${idx})">
+      <div class="kw-hint">Contoh: bus, angkot, halte — pisahkan dengan Enter</div>
+      <div class="kw-tags" id="kwtags-${idx}">
+        ${cat.keywords.map((kw, ki) => `
+          <span class="kw-tag">
+            ${esc(kw)}
+            <button class="remove-kw" onclick="removeKeyword(${idx},${ki})">✕</button>
+          </span>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function addKeyword(e, catIdx) {
+  if (e.key !== 'Enter') return;
+  const val = e.target.value.trim().toLowerCase();
+  if (!val) return;
+  val.split(',').map(v => v.trim()).filter(Boolean).forEach(v => {
+    if (!categories[catIdx].keywords.includes(v))
+      categories[catIdx].keywords.push(v);
+  });
+  e.target.value = '';
+  renderCatList();
+}
+
+function removeKeyword(catIdx, kwIdx) {
+  categories[catIdx].keywords.splice(kwIdx, 1);
+  renderCatList();
+}
+
+// ═══════════════════════════════════════════════════════
+// SENTIMENT EDITOR
+// ═══════════════════════════════════════════════════════
+function renderSentTags() {
+  renderTagList('neg-tags', sentNeg, 'neg');
+  renderTagList('pos-tags', sentPos, 'pos');
+}
+
+function renderTagList(containerId, arr, type) {
+  document.getElementById(containerId).innerHTML = arr.map((w, i) => `
+    <span class="kw-tag" style="cursor:pointer;"
+      onclick="removeSentWord('${type}', ${i})" title="Klik untuk hapus">
+      ${esc(w)} <span style="font-size:11px;">✕</span>
+    </span>
+  `).join('');
+}
+
+function addSentWord(e, type) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById(type + '-input');
+  const val   = input.value.trim().toLowerCase();
+  if (!val) return;
+  const arr = type === 'neg' ? sentNeg : sentPos;
+  val.split(',').map(v => v.trim()).filter(Boolean).forEach(v => {
+    if (!arr.includes(v)) arr.push(v);
+  });
+  input.value = '';
+  renderSentTags();
+}
+
+function removeSentWord(type, idx) {
+  (type === 'neg' ? sentNeg : sentPos).splice(idx, 1);
+  renderSentTags();
+}
+
+// ═══════════════════════════════════════════════════════
+// CSV UPLOAD & PARSE
+// ═══════════════════════════════════════════════════════
+const LABEL_TIDAK_COCOK   = 'Tidak Terklasifikasi';
+const LABEL_TIDAK_RELEVAN = 'Tidak Relevan';
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+}
+
+// Coba UTF-8; kalau muncul karakter rusak (�), baca ulang sebagai Latin-1
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const teks = e.target.result;
+    if (!teks.includes('�')) { parseCSV(teks); return; }
+    const r2 = new FileReader();
+    r2.onload = e2 => parseCSV(e2.target.result);
+    r2.readAsText(file, 'ISO-8859-1');
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// Parser CSV yang mendukung teks berkutip berisi enter, koma, dan "" (kutip ganda)
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const barisPertama = text.slice(0, text.search(/\r?\n|$/));
+  const pemisah = (barisPertama.split(';').length > barisPertama.split(',').length) ? ';' : ',';
+
+  const rows = []; let row = [], cur = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cur += c;
+    } else if (c === '"') inQ = true;
+    else if (c === pemisah) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); cur = '';
+      if (row.some(v => v.trim())) rows.push(row);
+      row = [];
+    } else cur += c;
+  }
+  row.push(cur);
+  if (row.some(v => v.trim())) rows.push(row);
+
+  if (rows.length < 2) { alert('File terlalu sedikit baris.'); return; }
+  headers = rows[0].map(h => h.trim());
+  rawData = rows.slice(1);
+
+  const sel = document.getElementById('col-picker');
+  sel.innerHTML = headers.map((h, i) =>
+    `<option value="${i}">${esc(h || 'Kolom ' + (i+1))}</option>`
+  ).join('');
+
+  const autoIdx = headers.findIndex(h =>
+    /keluhan|komentar|isi|pesan|deskripsi|text|teks|complaint|review|ulasan|laporan|feedback/i.test(h)
+  );
+  if (autoIdx >= 0) sel.value = autoIdx;
+
+  document.getElementById('row-count').textContent =
+    `${rawData.length} baris, ${headers.length} kolom`;
+  document.getElementById('col-area').classList.remove('hidden');
+  document.getElementById('upload-zone').classList.add('done');
+}
+
+function toggleKey() {
+  const pakaiLlm = document.getElementById('metode-picker').value === 'llm';
+  document.getElementById('key-area').classList.toggle('hidden', !pakaiLlm);
+}
+
+// ═══════════════════════════════════════════════════════
+// MESIN KATA KUNCI
+// ═══════════════════════════════════════════════════════
+function escRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Hitung kemunculan kata kunci (kata utuh), frasa terpanjang dulu lalu ditandai
+// supaya tidak terhitung dua kali (mis. "tarif parkir" tidak ikut dihitung "tarif").
+function hitungKemunculan(text, kamus) {
+  let sisa = text.toLowerCase();
+  const skor = {};
+  const pasangan = [];
+  for (const [label, daftar] of Object.entries(kamus)) {
+    skor[label] = 0;
+    for (const kw of new Set(daftar.map(k => k.toLowerCase().trim()).filter(Boolean)))
+      pasangan.push([kw, label]);
+  }
+  pasangan.sort((a, b) => b[0].length - a[0].length);
+  for (const [kw, label] of pasangan) {
+    const pola = new RegExp(`(?<![\\p{L}\\p{N}_])${escRegex(kw)}(?![\\p{L}\\p{N}_])`, 'gu');
+    sisa = sisa.replace(pola, () => { skor[label]++; return ' '; });
+  }
+  return skor;
+}
+
+function classify(text) {
+  if (!text.trim() || !categories.length) return LABEL_TIDAK_COCOK;
+  const kamus = {};
+  categories.forEach((c, i) => { kamus[i] = c.keywords; });
+  const skor = hitungKemunculan(text, kamus);
+  let terbaik = -1, maks = 0;
+  categories.forEach((c, i) => { if (skor[i] > maks) { maks = skor[i]; terbaik = i; } });
+  return terbaik < 0 ? LABEL_TIDAK_COCOK : categories[terbaik].name;
+}
+
+function sentiment(text) {
+  if (!text.trim()) return 'Netral';
+  const s = hitungKemunculan(text, { neg: sentNeg, pos: sentPos });
+  if (s.neg > s.pos) return 'Negatif';
+  if (s.pos > s.neg) return 'Positif';
+  return 'Netral';
+}
+
+// ═══════════════════════════════════════════════════════
+// MESIN LLM (dipanggil langsung dari browser)
+// ═══════════════════════════════════════════════════════
+const MODEL_LLM    = 'claude-haiku-4-5';
+const UKURAN_KELOMPOK = 20;
+const MAKS_PARALEL    = 3;
+
+class GalatAkun extends Error {}
+
+function buatPromptSistem() {
+  const daftarKategori = categories.map((c, i) =>
+    `${i + 1}. "${c.name}" - contoh topik: ${c.keywords.join(', ') || '(tidak ada contoh)'}`
+  ).join('\n');
+  return `Kamu menganalisis teks warga Jakarta (tweet/ulasan) untuk penelitian tugas akhir tentang kinerja NYATA Dinas Perhubungan (Dishub) DKI Jakarta di lapangan.
+
+Kategori yang tersedia:
+${daftarKategori}
+
+Untuk setiap teks tentukan:
+- kategori: salah satu nama kategori di atas yang paling sesuai dengan MAKNA teks (kata kunci hanya petunjuk topik, bukan syarat). Pilih "${LABEL_TIDAK_RELEVAN}" jika teks berupa review aplikasi (bug, login, fitur), iklan, candaan, berita/pengumuman tanpa pendapat warga, atau topik di luar Dishub (banjir, sampah, dll).
+- sentimen: sikap warga terhadap pelayanan yang dibahas: "Positif", "Negatif", atau "Netral". Tangkap sarkasme sesuai maksud sebenarnya. Jika kategori "${LABEL_TIDAK_RELEVAN}", isi "Netral".
+
+Kamu akan menerima beberapa teks bernomor. Panggil tool kirim_analisis satu kali dengan tepat satu hasil untuk SETIAP nomor.`;
+}
+
+function buatTool() {
+  return {
+    name: 'kirim_analisis',
+    description: 'Kirim hasil analisis untuk semua teks bernomor.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        hasil: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              nomor:    { type: 'integer' },
+              kategori: { type: 'string', enum: [...categories.map(c => c.name), LABEL_TIDAK_RELEVAN] },
+              sentimen: { type: 'string', enum: ['Positif', 'Negatif', 'Netral'] }
+            },
+            required: ['nomor', 'kategori', 'sentimen'],
+            additionalProperties: false
+          }
+        }
+      },
+      required: ['hasil'],
+      additionalProperties: false
+    },
+    strict: true
+  };
+}
+
+async function panggilLlm(apiKey, sistem, tool, daftarTeks) {
+  const isi = daftarTeks.map((t, i) => `[${i + 1}] ${t.slice(0, 1000)}`).join('\n\n');
+  for (let percobaan = 0; percobaan < 4; percobaan++) {
+    let res;
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: MODEL_LLM,
+          max_tokens: 4096,
+          system: sistem,
+          tools: [tool],
+          tool_choice: { type: 'tool', name: 'kirim_analisis' },
+          messages: [{ role: 'user', content: isi }]
+        })
+      });
+    } catch (e) {
+      await new Promise(r => setTimeout(r, 1000 * 2 ** percobaan));
+      continue;
+    }
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      const blok = (data.content || []).find(b => b.type === 'tool_use');
+      return blok ? blok.input.hasil : [];
+    }
+    // Key salah, kredit habis, atau permintaan tidak valid: hentikan semua
+    if ([400, 401, 403].includes(res.status))
+      throw new GalatAkun(data.error?.message || `HTTP ${res.status}`);
+    // 429 / 5xx: tunggu lalu coba lagi
+    await new Promise(r => setTimeout(r, 1000 * 2 ** percobaan));
+  }
+  return null; // gangguan sementara terus-menerus -> fallback kata kunci
+}
+
+async function analisisLlm(apiKey, daftarTeks, onProgres) {
+  const sistem = buatPromptSistem(), tool = buatTool();
+  const hasil = new Array(daftarTeks.length);
+  const indeksBerisi = [];
+  daftarTeks.forEach((t, i) => {
+    if (t.trim()) indeksBerisi.push(i);
+    else hasil[i] = { kategori: LABEL_TIDAK_COCOK, sentimen: 'Netral', metode: 'Kosong' };
+  });
+  const kelompok = [];
+  for (let a = 0; a < indeksBerisi.length; a += UKURAN_KELOMPOK)
+    kelompok.push(indeksBerisi.slice(a, a + UKURAN_KELOMPOK));
+
+  let selesai = 0, berikut = 0;
+  async function pekerja() {
+    while (berikut < kelompok.length) {
+      const grup = kelompok[berikut++];
+      const keluaran = await panggilLlm(apiKey, sistem, tool, grup.map(i => daftarTeks[i]));
+      const perNomor = {};
+      (keluaran || []).forEach(h => { perNomor[h.nomor] = h; });
+      grup.forEach((idx, j) => {
+        const h = perNomor[j + 1];
+        hasil[idx] = h
+          ? { kategori: h.kategori, sentimen: h.sentimen, metode: 'LLM' }
+          : { kategori: classify(daftarTeks[idx]), sentimen: sentiment(daftarTeks[idx]), metode: 'Kata Kunci (fallback)' };
+      });
+      selesai += grup.length;
+      onProgres(selesai, indeksBerisi.length);
+    }
+  }
+  await Promise.all(Array.from({ length: MAKS_PARALEL }, pekerja));
+  return hasil;
+}
+
+// ═══════════════════════════════════════════════════════
+// PROSES
+// ═══════════════════════════════════════════════════════
+function setProgres(pct, teks) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = teks;
+}
+
+// Daftar label kategori yang muncul di hasil (kategori buatan + label khusus)
+function labelHasil() {
+  const daftar = categories.map(c => c.name);
+  const ada = new Set(allRows.map(r => r.kategori));
+  if (ada.has(LABEL_TIDAK_RELEVAN)) daftar.push(LABEL_TIDAK_RELEVAN);
+  if (ada.has(LABEL_TIDAK_COCOK))   daftar.push(LABEL_TIDAK_COCOK);
+  return daftar;
+}
+
+async function mulaiProses() {
+  const metode = document.getElementById('metode-picker').value;
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!categories.length) { alert('Buat minimal satu kategori dulu.'); return; }
+  if (metode === 'llm' && !apiKey.startsWith('sk-ant-')) {
+    alert('API key LLM belum diisi atau formatnya tidak valid.'); return;
+  }
+  goStep(4);
+  await runClassification(metode, apiKey);
+}
+
+async function runClassification(metode = 'kata_kunci', apiKey = '') {
+  const colIdx = parseInt(document.getElementById('col-picker').value);
+  const daftarTeks = rawData.map(r => (r[colIdx] || '').trim());
+  const total = daftarTeks.length;
+  allRows = [];
+
+  if (metode === 'llm') {
+    setProgres(0, `Mengirim ${total} teks ke AI...`);
+    let label;
+    try {
+      label = await analisisLlm(apiKey, daftarTeks, (n, t) =>
+        setProgres(Math.round(n / t * 100), `AI menganalisis ${n} dari ${t} teks...`));
+    } catch (e) {
+      if (e instanceof GalatAkun) {
+        alert('API LLM menolak permintaan: ' + e.message + '\n\nPeriksa API key / kredit. Tidak ada data yang diproses.');
+        goStep(3); return;
+      }
+      throw e;
+    }
+    daftarTeks.forEach((teks, i) => allRows.push({ teks, ...label[i], _orig: rawData[i] }));
+  } else {
+    for (let i = 0; i < total; i++) {
+      const teks = daftarTeks[i];
+      allRows.push({
+        teks,
+        kategori: classify(teks),
+        sentimen: sentiment(teks),
+        metode:   teks ? 'Kata Kunci' : 'Kosong',
+        _orig:    rawData[i]
+      });
+      if (i % 25 === 0 || i === total - 1) {
+        setProgres(Math.round((i + 1) / total * 100), `Memproses ${i + 1} dari ${total} baris...`);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+  }
+
+  const fallback = allRows.filter(r => r.metode === 'Kata Kunci (fallback)').length;
+  if (fallback) alert(`${fallback} teks gagal dianalisis AI (gangguan jaringan/server) dan memakai kata kunci. Lihat kolom Metode.`);
+
+  updateFilterOptions();
+  renderStats();
+  renderTable();
+  goStep(5);
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER RESULTS
+// ═══════════════════════════════════════════════════════
+function updateFilterOptions() {
+  const sel = document.getElementById('filter-cat');
+  const cur = sel.value;
+  const daftar = allRows.length ? labelHasil() : categories.map(c => c.name);
+  sel.innerHTML = '<option value="">Semua Kategori</option>' +
+    daftar.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  sel.value = cur;
+}
+
+function renderStats() {
+  const total = allRows.length;
+  const pct   = n => total ? Math.round(n / total * 100) : 0;
+
+  const catCounts  = labelHasil().map(n => ({
+    label: n, value: allRows.filter(r => r.kategori === n).length
+  }));
+  const sentCounts = ['Negatif', 'Netral', 'Positif'].map(s => ({
+    label: s, value: allRows.filter(r => r.sentimen === s).length
+  }));
+
+  document.getElementById('stats-grid').innerHTML = [...catCounts, ...sentCounts].map(c => `
+      <div class="stat-card">
+        <div class="stat-label">${esc(c.label)}</div>
+        <div class="stat-value">${c.value}</div>
+        <div class="stat-pct">${pct(c.value)}% dari total</div>
+      </div>`).join('');
+}
+
+function renderTable() {
+  const fCat  = document.getElementById('filter-cat').value;
+  const fSent = document.getElementById('filter-sent').value;
+  const filtered = allRows.filter(r =>
+    (!fCat  || r.kategori === fCat) &&
+    (!fSent || r.sentimen === fSent)
+  );
+  const slice = filtered.slice(0, 300);
+
+  document.getElementById('result-tbody').innerHTML = slice.length
+    ? slice.map(r => `<tr>
+          <td>${esc(r.teks)}</td>
+          <td>${esc(r.kategori)}</td>
+          <td>${esc(r.sentimen)}</td>
+          <td>${esc(r.metode)}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--muted);">Tidak ada data yang cocok.</td></tr>`;
+
+  document.getElementById('table-info').textContent =
+    `Menampilkan ${slice.length} dari ${filtered.length} baris. Total: ${allRows.length}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT EXCEL
+// ═══════════════════════════════════════════════════════
+function exportExcel() {
+  if (!allRows.length) { alert('Belum ada data.'); return; }
+
+  const colHeaders = [...headers.map((h, i) => h || `Kolom ${i+1}`), 'Isi Teks', 'Kategori', 'Sentimen', 'Metode'];
+  const wsData = [colHeaders, ...allRows.map(r => {
+    const asli = headers.map((_, i) => r._orig[i] ?? '');
+    return [...asli, r.teks, r.kategori, r.sentimen, r.metode];
+  })];
+
+  const ws1 = XLSX.utils.aoa_to_sheet(wsData);
+  ws1['!cols'] = [...headers.map(() => ({ wch: 18 })), { wch: 55 }, { wch: 25 }, { wch: 12 }, { wch: 20 }];
+
+  const total  = allRows.length;
+  const pct    = n => (n / total * 100).toFixed(1) + '%';
+  const hitung = (kunci, nilai) => allRows.filter(r => r[kunci] === nilai).length;
+  const daftarMetode = [...new Set(allRows.map(r => r.metode))];
+  const summaryData = [
+    ['RINGKASAN KATEGORI'], ['Kategori', 'Jumlah', 'Persentase'],
+    ...labelHasil().map(n => [n, hitung('kategori', n), pct(hitung('kategori', n))]),
+    [],
+    ['RINGKASAN SENTIMEN'], ['Sentimen', 'Jumlah', 'Persentase'],
+    ...['Negatif','Netral','Positif'].map(s => [s, hitung('sentimen', s), pct(hitung('sentimen', s))]),
+    [],
+    ['METODE ANALISIS'], ['Metode', 'Jumlah', 'Persentase'],
+    ...daftarMetode.map(m => [m, hitung('metode', m), pct(hitung('metode', m))]),
+    [],
+    ['Total Data', total]
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+  ws2['!cols'] = [{ wch: 30 }, { wch: 10 }, { wch: 14 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, 'Hasil Klasifikasi');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Ringkasan');
+  XLSX.writeFile(wb, 'hasil_klasifikasi.xlsx');
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function resetAll() {
+  allRows = []; rawData = []; headers = [];
+  document.getElementById('upload-zone').classList.remove('done');
+  document.getElementById('col-area').classList.add('hidden');
+  document.getElementById('csv-input').value = '';
+  goStep(1);
+}
+
+// ─── Init: load preset transportasi ───────────────────
+loadPreset('transportasi');
+goStep(1);
+</script>
+</body>
+</html>

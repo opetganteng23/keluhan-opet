@@ -1,0 +1,39 @@
+# Rahasia - jangan pernah di-commit
+.env
+.env.*
+!.env.example
+
+# Lingkungan & cache Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor & OS
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+.DS_Store
+
+# File sementara
+uploads/*
+_arsip/
+*.log
+
+# Data pengguna & hasil analisis (jangan simpan permanen)
+*.xlsx
+*.csv
+!tests/test.csv
+
+# Model hasil pelatihan (besar)
+metode_5_indobert/model/
+metode_3_tfidf_naive_bayes/model/
+metode_4_tfidf_svm/model/
+*.pkl
+*.joblib
+*.safetensors
+*.bin
